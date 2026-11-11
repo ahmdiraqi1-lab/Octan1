@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>حاسبة الأوكتان البحثي</title>
+<meta name="theme-color" content="#0A6B73">
+<meta name="description" content="حاسبة الأوكتان البحثي حسب ASTM D2699-26 الملحق A4">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="الأوكتان">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Layout: one column. Input strip on top, three readout tiles under it, then the source tables with the matching cell lit. */
+  :root {
+    --bg: #E9EEF0;
+    --surface: #FFFFFF;
+    --ink: #13222B;
+    --muted: #55666F;
+    --line: #CAD5DA;
+    --head: #DDE6E9;
+    --accent: #0A6B73;
+    --accent-ink: #FFFFFF;
+    --hit: #FFD35C;
+    --hit-ink: #2A1F00;
+    --warn: #A7391C;
+    --f-body: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
+    --f-num: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E171C; --surface: #152229; --ink: #E4EDF0; --muted: #94A7B1; --line: #28393F;
+      --head: #1D2E36; --accent: #4CC2C4; --accent-ink: #06262A; --hit: #E8B93A; --hit-ink: #1B1400; --warn: #F09A7E;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E171C; --surface: #152229; --ink: #E4EDF0; --muted: #94A7B1; --line: #28393F;
+    --head: #1D2E36; --accent: #4CC2C4; --accent-ink: #06262A; --hit: #E8B93A; --hit-ink: #1B1400; --warn: #F09A7E;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--f-body); font-size: 15px; line-height: 1.6;
+    padding-block: 24px 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+  header h1 { margin: 0; font-size: 1.6rem; font-weight: 700; text-wrap: balance; line-height: 1.3; }
+  header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+  .tag { font-family: var(--f-num); font-size: .78rem; letter-spacing: .06em; color: var(--accent); direction: ltr; unicode-bidi: isolate; display: inline-block; margin-bottom: 4px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+  .label { font-size: .82rem; font-weight: 600; color: var(--muted); letter-spacing: .02em; margin: 0 0 8px; }
+
+  .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 4px; background: var(--head); border-radius: 8px; }
+  .modes input { position: absolute; opacity: 0; pointer-events: none; }
+  .modes label { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0; padding: 8px 6px; border-radius: 6px; cursor: pointer; font-weight: 500; line-height: 1.35; min-height: 52px; }
+  .modes label small { font-family: var(--f-num); font-size: .72rem; color: var(--muted); direction: ltr; }
+  .modes input:checked + label { background: var(--surface); box-shadow: 0 0 0 2px var(--accent); font-weight: 600; }
+  .modes input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .entry { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 16px; }
+  .field { flex: 1 1 240px; min-width: 0; }
+  .field input[type=text] {
+    width: 100%; font-family: var(--f-num); font-size: 1.7rem; font-weight: 500; direction: ltr; text-align: left;
+    padding: 8px 14px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--bg); color: var(--ink);
+  }
+  .field input[type=text]:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+  .range { color: var(--muted); font-size: .85rem; padding-bottom: 12px; }
+  .range b { font-family: var(--f-num); font-weight: 500; direction: ltr; unicode-bidi: isolate; display: inline-block; color: var(--ink); }
+
+  .msgs { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: .88rem; color: var(--muted); }
+  .msgs li.err { color: var(--warn); font-weight: 600; }
+  .msgs:empty { display: none; }
+
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .tile.given { border: 2px solid var(--accent); padding: 15px; }
+  .tile h2 { margin: 0; font-size: .95rem; font-weight: 600; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .tile h2 small { font-family: var(--f-num); font-weight: 400; color: var(--muted); direction: ltr; }
+  .val { font-family: var(--f-num); font-size: 2.3rem; font-weight: 500; line-height: 1.25; direction: ltr; text-align: right; unicode-bidi: isolate; overflow-wrap: anywhere; }
+  .tile.given .val { color: var(--accent); }
+  .src { font-size: .82rem; color: var(--muted); }
+  .badge { align-self: flex-start; font-size: .72rem; font-weight: 600; background: var(--accent); color: var(--accent-ink); border-radius: 4px; padding: 0 7px; margin-bottom: 4px; }
+
+  .check { margin: 0; font-size: .86rem; color: var(--muted); }
+  .check code { font-family: var(--f-num); direction: ltr; unicode-bidi: isolate; display: inline-block; color: var(--ink); }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .tabs button { font: inherit; font-weight: 500; cursor: pointer; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 6px; padding: 5px 14px; }
+  .tabs button[aria-selected=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .tabs button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .tabcap { margin: 0 0 10px; font-size: .88rem; color: var(--muted); }
+
+  .scroller { max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; direction: ltr; }
+  table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 620px; font-family: var(--f-num); font-size: .86rem; font-variant-numeric: tabular-nums; }
+  th, td { padding: 4px 8px; text-align: center; border-bottom: 1px solid var(--line); }
+  thead th { position: sticky; top: 0; background: var(--head); z-index: 2; font-weight: 600; }
+  tbody th { position: sticky; left: 0; background: var(--head); z-index: 1; border-right: 1px solid var(--line); font-weight: 600; }
+  thead th:first-child { left: 0; z-index: 3; font-size: .72rem; }
+  td.hit { background: var(--hit); color: var(--hit-ink); font-weight: 700; outline: 2px solid var(--hit-ink); outline-offset: -2px; }
+  th.axis { background: var(--accent); color: var(--accent-ink); }
+  td:empty::after { content: "…"; color: var(--muted); }
+
+  .unit { display: flex; align-items: center; gap: 10px; direction: ltr; }
+  .unit input { flex: 1; min-width: 0; }
+  .unit span { font-family: var(--f-num); color: var(--muted); font-size: 1rem; }
+  .dirs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 4px; background: var(--head); border-radius: 8px; margin-top: 14px; }
+  .dirs input { position: absolute; opacity: 0; pointer-events: none; }
+  .dirs label { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 6px; cursor: pointer; line-height: 1.4; }
+  .dirs label b { font-weight: 600; }
+  .dirs label small { color: var(--muted); font-size: .8rem; }
+  .dirs input:checked + label { background: var(--surface); box-shadow: 0 0 0 2px var(--accent); }
+  .dirs input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .pinfo { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0 0; }
+  .pinfo div { background: var(--bg); border-radius: 8px; padding: 8px 12px; min-width: 0; }
+  .pinfo dt { font-size: .78rem; color: var(--muted); }
+  .pinfo dd { margin: 0; font-family: var(--f-num); font-weight: 500; direction: ltr; text-align: right; unicode-bidi: isolate; overflow-wrap: anywhere; }
+  .rule { margin: 12px 0 0; font-size: .84rem; color: var(--muted); }
+  .adj { font-family: var(--f-num); font-size: .84rem; color: var(--accent); direction: rtl; margin-top: 4px; font-weight: 500; }
+  .adj:empty { display: none; }
+  table.p th.g1, table.p td.g1 { width: 96px; min-width: 96px; max-width: 96px; }
+  tbody th.g1 { left: 0; }
+  tbody th.g2, thead th.g2 { left: 96px; font-weight: 500; font-family: var(--f-body); font-size: .8rem; white-space: nowrap; min-width: 96px; }
+  thead th.g2 { z-index: 3; }
+  tr.end > th, tr.end > td { border-bottom: 2px solid var(--line); }
+  footer { color: var(--muted); font-size: .82rem; max-width: 80ch; }
+  @media (max-width: 640px) {
+    .tiles { grid-template-columns: 1fr; }
+    .val { font-size: 2rem; }
+    header h1 { font-size: 1.35rem; }
+    .modes label { font-size: .85rem; }
+    .dirs { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: no-preference) { .tile { transition: border-color .15s; } }
+</style>
+<style>
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; padding-top: max(24px, env(safe-area-inset-top, 0px)); padding-bottom: max(40px, env(safe-area-inset-bottom, 0px)); -webkit-tap-highlight-color: transparent; }
+  button, label { touch-action: manipulation; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="tag">ASTM D2699 − 26 · ANNEX A4</span>
+    <h1>حاسبة الأوكتان البحثي</h1>
+    <p>أدخل قيمة واحدة من الجداول A4.1 وA4.2 وA4.3 لتحصل على القيمتين الأخريين، ثم أدخل الضغط الجوي بالملي بار لتصحيح القراءات حسب الجدولين A4.4 وA4.5. تُظهر الصفحة الخلية المقابلة في كل جدول أصلي.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="in-label">
+    <p class="label" id="in-label">أي قيمة لديك؟</p>
+    <div class="modes" role="radiogroup" aria-labelledby="in-label">
+      <input type="radio" name="mode" id="m-ron" value="ron" checked><label for="m-ron">رقم الأوكتان البحثي<small>RON</small></label>
+      <input type="radio" name="mode" id="m-counter" value="counter"><label for="m-counter">قراءة العداد الرقمي<small>Digital counter</small></label>
+      <input type="radio" name="mode" id="m-dial" value="dial"><label for="m-dial">قراءة مؤشر القرص<small>Dial indicator</small></label>
+    </div>
+    <div class="entry">
+      <div class="field">
+        <label class="label" for="val">القيمة</label>
+        <input type="text" id="val" inputmode="decimal" autocomplete="off" spellcheck="false" value="91.5" aria-describedby="range msgs">
+      </div>
+      <div class="range" id="range"></div>
+    </div>
+    <ul class="msgs" id="msgs" role="status" aria-live="polite"></ul>
+  </section>
+
+  <section class="panel" aria-labelledby="p-label">
+    <p class="label" id="p-label">تصحيح الضغط الجوي (الجدولان A4.4 وA4.5)</p>
+    <div class="entry">
+      <div class="field">
+        <label class="label" for="mbar">الضغط الجوي بالملي بار</label>
+        <div class="unit"><input type="text" id="mbar" inputmode="decimal" autocomplete="off" spellcheck="false" value="1000" aria-describedby="prange pmsgs"><span>mbar</span></div>
+      </div>
+      <div class="range" id="prange">المدى المتاح: <b>709 – 1048</b></div>
+    </div>
+    <div class="dirs" role="radiogroup" aria-label="اتجاه التصحيح">
+      <input type="radio" name="dir" id="d-a" value="a" checked><label for="d-a"><b>من الجدول إلى المحرك</b><small>تُصحَّح النتائج لتناسب الضغط الحالي (الملاحظة 4)</small></label>
+      <input type="radio" name="dir" id="d-b" value="b"><label for="d-b"><b>من المحرك إلى الجدول</b><small>المُدخل قراءة مرصودة وتُحوَّل إلى الضغط القياسي قبل البحث (الملاحظة 5)</small></label>
+    </div>
+    <dl class="pinfo" id="pinfo"></dl>
+    <p class="rule">عند ضغط أقل من القياسي (<bdi dir="ltr">29.92 in. Hg</bdi>) يُضاف تصحيح العداد ويُطرح تصحيح المؤشر، وعند ضغط أعلى يحدث العكس. اترك الحقل فارغًا لعرض قيم الجدول القياسية بلا تصحيح.</p>
+    <ul class="msgs" id="pmsgs" role="status" aria-live="polite"></ul>
+  </section>
+
+  <section class="tiles" aria-label="النتائج">
+    <article class="tile" id="t-ron">
+      <h2>رقم الأوكتان البحثي <small>RON</small></h2>
+      <div class="val" id="v-ron">—</div><div class="src" id="s-ron"></div>
+    </article>
+    <article class="tile" id="t-counter">
+      <h2>قراءة العداد الرقمي <small>Counter</small></h2>
+      <div class="val" id="v-counter">—</div><div class="src" id="s-counter"></div><div class="adj" id="a-counter"></div>
+    </article>
+    <article class="tile" id="t-dial">
+      <h2>قراءة مؤشر القرص <small>Dial</small></h2>
+      <div class="val" id="v-dial">—</div><div class="src" id="s-dial"></div><div class="adj" id="a-dial"></div>
+    </article>
+  </section>
+
+  <p class="check" id="check"></p>
+
+  <section class="panel" aria-labelledby="tb-label">
+    <p class="label" id="tb-label">الجداول الأصلية</p>
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" id="tab-a41" data-t="a41" aria-selected="true">A4.1</button>
+      <button role="tab" id="tab-a42" data-t="a42" aria-selected="false">A4.2</button>
+      <button role="tab" id="tab-a43" data-t="a43" aria-selected="false">A4.3</button>
+      <button role="tab" id="tab-a44" data-t="a44" aria-selected="false">A4.4</button>
+      <button role="tab" id="tab-a45" data-t="a45" aria-selected="false">A4.5</button>
+    </div>
+    <p class="tabcap" id="tabcap"></p>
+    <div class="scroller" id="scroller" role="tabpanel" tabindex="0" aria-labelledby="tb-label"></div>
+  </section>
+
+  <footer>
+    المصدر: ASTM D2699 − 26، الملحق A4، فتحة فنتوري 9/16 بوصة. الجداول A4.1 إلى A4.3 عند الضغط القياسي <bdi dir="ltr">29.92 in. Hg</bdi>، وتنتهي A4.1 وA4.3 عند RON 120.3. الجدولان A4.4 وA4.5 بخطوة <bdi dir="ltr">0.1 in. Hg</bdi>، لذا يُقرَّب الضغط المُدخل إلى أقرب خطوة بعد تحويله بالعلاقة <bdi dir="ltr">1 in. Hg = 33.8639 mbar</bdi>.
+  </footer>
+</div>
+
+<script>
+const DATA = {"a41":[357,357,357,357,358,359,359,359,360,360,361,361,361,362,362,363,363,363,364,364,364,365,365,366,366,366,367,367,368,368,368,369,369,370,370,370,371,371,372,372,373,373,373,374,374,375,375,375,376,376,377,377,378,378,379,379,380,380,381,382,382,383,383,384,384,385,385,386,386,387,387,388,388,389,389,389,390,390,390,390,391,391,392,392,393,393,394,395,395,396,396,397,397,398,399,399,400,400,401,402,402,403,403,404,404,405,405,406,406,406,407,408,408,409,410,410,411,411,412,412,412,413,413,414,414,415,415,416,417,417,418,418,419,419,420,420,421,422,422,423,423,424,424,425,426,426,427,427,428,428,429,429,430,430,431,432,432,433,433,434,435,435,436,436,437,437,438,439,439,440,440,441,441,442,442,443,443,444,444,445,446,446,447,448,448,449,449,450,450,451,451,452,453,453,454,454,455,455,456,457,457,458,458,459,460,460,461,461,462,462,463,464,465,465,466,467,467,468,469,470,470,471,471,472,472,473,474,474,475,475,476,477,478,478,478,479,479,480,481,481,482,483,484,484,485,485,486,486,487,488,488,489,490,491,491,492,492,493,494,495,495,496,497,498,498,499,500,501,501,502,502,503,503,504,505,506,507,508,508,509,509,510,510,511,512,513,513,514,515,515,516,517,517,518,519,519,520,520,521,522,523,524,525,525,526,526,527,527,528,529,530,531,532,532,533,533,534,534,535,536,537,538,539,539,540,540,541,542,543,544,545,546,546,547,548,548,549,550,551,552,553,554,554,555,556,557,558,559,560,560,561,562,563,564,565,566,567,567,568,569,570,571,572,573,574,575,576,577,578,579,580,581,581,582,583,584,585,586,587,588,589,590,591,592,593,594,595,596,597,598,599,600,601,602,603,604,605,606,607,608,609,610,611,612,613,614,615,616,617,618,619,620,621,622,623,624,625,626,627,628,629,630,631,632,633,634,635,636,637,639,640,641,642,643,644,645,646,647,648,649,650,651,652,653,654,656,657,658,659,660,661,663,664,666,667,668,669,670,671,672,673,674,675,677,678,680,681,682,683,684,685,687,688,689,691,692,694,695,697,698,699,700,701,702,704,705,706,708,709,711,712,713,715,716,718,719,721,722,723,725,726,728,729,730,732,733,735,736,737,739,740,742,743,744,746,747,749,750,752,753,756,757,759,760,761,763,764,766,767,768,770,772,774,776,778,780,781,783,784,785,787,789,791,793,795,797,799,801,802,804,805,807,809,811,812,814,816,818,820,822,824,826,828,830,832,835,837,839,841,843,845,847,849,852,854,856,858,860,862,864,867,870,873,875,877,880,883,885,888,891,893,895,898,900,903,906,909,912,915,917,919,924,925,928,932,936,939,940,944,949,950,953,957,960,964,967,969,973,976,980,983,986,987,990,994,997,1000,1003,1005,1008,1011,1014,1017,1019,1022,1025,1028,1031,1034,1036,1039,1042,1043,1045,1048,1050,1052,1055,1057,1059,1062,1063,1065,1067,1070,1073,1074,1076,1079,1080,1081,1084,1086,1087,1090,1091,1093,1094,1097,1098,1100,1101,1103,1104,1105,1107,1110,1111,1112,1114,1115,1117,1118,1120,1121,1122,1124,1125,1127,1128,1131,1132,1134,1135,1136,1138,1139,1141,1142,1142,1145,1146,1148,1148,1149,1151,1152,1153,1155,1156,1158,1159,1160,1162,1163,1165,1166,1167,1167,1169,1170,1172,1173,1175,1176,1177,1179,1180,1182,1183,1184,1186,1186,1187,1189,1189,1191,1193,1194,1196,1197,1197,1199,1200,1201,1203,1204,1206,1207,1208,1208,1210,1211,1213,1214,1215,1218,1220,1221,1222,1224,1225,1227,1228,1230,1232,1234,1235,1237,1238,1239,1241,1242,1244,1245,1246,1249,1251,1252,1253,1255,1256,1258,1259,1260,1262,1265,1266,1268,1269,1270,1272,1273,1275,1276,1277,1280,1282,1283,1285,1286,1287,1289,1290],"a42":[58.8,59.0,59.1,59.3,59.5,59.6,59.8,60.0,60.1,60.3,60.4,60.6,60.8,61.0,61.1,61.2,61.4,61.6,61.7,61.8,62.0,62.2,62.4,62.5,62.6,62.8,63.0,63.1,63.3,63.6,63.7,63.8,64.0,64.1,64.2,64.4,64.6,64.8,65.0,65.1,65.2,65.4,65.6,65.7,65.8,66.0,66.1,66.2,66.4,66.5,66.6,66.8,67.0,67.2,67.3,67.4,67.5,67.6,67.8,68.0,68.2,68.3,68.4,68.6,68.7,68.8,69.0,69.2,69.3,69.4,69.6,69.8,69.9,70.0,70.1,70.2,70.4,70.6,70.8,70.9,71.0,71.1,71.2,71.4,71.6,71.8,71.9,72.0,72.1,72.2,72.4,72.6,72.7,72.8,72.9,73.0,73.2,73.3,73.4,73.6,73.7,73.8,73.9,74.0,74.2,74.3,74.4,74.5,74.6,74.7,74.8,75.0,75.1,75.2,75.3,75.4,75.5,75.6,75.8,75.9,76.0,76.1,76.2,76.3,76.4,76.5,76.6,76.7,76.8,76.9,77.0,77.2,77.3,77.4,77.5,77.6,77.7,77.8,77.9,78.0,78.1,78.2,78.3,78.4,78.5,78.6,78.7,78.8,78.9,79.0,79.1,79.2,79.3,79.4,79.5,79.6,79.7,79.8,79.9,80.0,80.1,80.2,80.3,80.4,80.5,80.6,80.7,80.8,80.9,81.0,81.1,81.2,81.3,81.4,81.5,81.6,81.7,81.8,81.9,82.0,82.1,82.2,82.3,82.4,82.5,82.6,82.7,82.8,82.8,82.9,83.0,83.1,83.2,83.3,83.4,83.5,83.6,83.7,83.8,83.9,84.0,84.1,84.2,84.3,84.4,84.4,84.5,84.6,84.7,84.8,84.9,85.0,85.0,85.1,85.2,85.2,85.3,85.4,85.5,85.6,85.7,85.8,85.9,86.0,86.1,86.2,86.2,86.3,86.4,86.4,86.5,86.6,86.7,86.8,86.9,87.0,87.0,87.1,87.2,87.3,87.4,87.4,87.5,87.6,87.6,87.7,87.8,87.8,87.9,88.0,88.1,88.2,88.3,88.4,88.4,88.5,88.6,88.6,88.7,88.8,88.8,88.9,89.0,89.1,89.2,89.2,89.3,89.4,89.4,89.5,89.6,89.6,89.7,89.8,89.8,89.9,90.0,90.0,90.1,90.2,90.3,90.4,90.4,90.5,90.6,90.6,90.7,90.8,90.8,90.9,91.0,91.0,91.1,91.2,91.3,91.4,91.4,91.5,91.6,91.6,91.7,91.8,91.8,91.9,91.9,92.0,92.0,92.1,92.2,92.2,92.3,92.4,92.4,92.5,92.6,92.6,92.7,92.8,92.9,93.0,93.0,93.0,93.1,93.2,93.2,93.2,93.3,93.4,93.4,93.4,93.5,93.6,93.6,93.7,93.8,93.9,94.0,94.0,94.0,94.1,94.2,94.2,94.2,94.3,94.4,94.4,94.4,94.5,94.6,94.6,94.6,94.7,94.8,94.8,94.9,95.0,95.0,95.1,95.2,95.2,95.2,95.3,95.4,95.4,95.5,95.6,95.6,95.6,95.7,95.8,95.8,95.8,95.9,96.0,96.0,96.0,96.1,96.2,96.2,96.2,96.3,96.4,96.4,96.4,96.5,96.5,96.6,96.6,96.6,96.7,96.8,96.8,96.9,96.9,97.0,97.0,97.0,97.1,97.2,97.2,97.2,97.3,97.3,97.4,97.4,97.4,97.5,97.6,97.6,97.6,97.7,97.8,97.8,97.8,97.9,97.9,98.0,98.0,98.0,98.1,98.1,98.1,98.2,98.2,98.2,98.3,98.4,98.4,98.4,98.5,98.5,98.5,98.6,98.6,98.6,98.7,98.7,98.8,98.8,98.8,98.9,98.9,99.0,99.0,99.0,99.1,99.1,99.2,99.2,99.2,99.3,99.3,99.4,99.4,99.4,99.5,99.5,99.5,99.6,99.6,99.6,99.7,99.7,99.7,99.8,99.8,99.8,99.9,100.0,100.0,100.0,100.0,100.1,100.1,100.1,100.2,100.2,100.3,100.3,100.3,100.4,100.4,100.4,100.4,100.4,100.5,100.5,100.5,100.6,100.6,100.7,100.7,100.8,100.8,100.8,100.8,100.8,100.9,100.9,100.9,101.0,101.0,101.1,101.1,101.1,101.2,101.2,101.2,101.2,101.3,101.3,101.3,101.4,101.4,101.4,101.4,101.5,101.5,101.6,101.6,101.6,101.6,101.7,101.7,101.7,101.8,101.8,101.8,101.8,101.9,101.9,101.9,102.0,102.0,102.0,102.1,102.1,102.2,102.2,102.3,102.3,102.3,102.4,102.4,102.4,102.4,102.5,102.5,102.5,102.6,102.6,102.6,102.7,102.7,102.8,102.8,102.8,102.9,102.9,102.9,103.0,103.0,103.0,103.1,103.1,103.1,103.2,103.2,103.2,103.3,103.3,103.4,103.4,103.4,103.5,103.5,103.5,103.6,103.6,103.6,103.7,103.7,103.7,103.8,103.8,103.8,103.9,103.9,104.0,104.0,104.0,104.1,104.1,104.2,104.2,104.3,104.3,104.4,104.4,104.4,104.5,104.6,104.6,104.6,104.7,104.7,104.8,104.8,104.8,104.9,104.9,105.0,105.0,105.1,105.2,105.2,105.2,105.3,105.3,105.4,105.4,105.4,105.5,105.5,105.6,105.6,105.7,105.7,105.8,105.8,105.9,106.0,106.0,106.1,106.1,106.2,106.2,106.3,106.3,106.4,106.4,106.5,106.6,106.6,106.7,106.7,106.8,106.8,106.9,107.0,107.0,107.1,107.2,107.2,107.3,107.4,107.4,107.5,107.5,107.6,107.6,107.7,107.8,107.8,107.9,108.0,108.0,108.1,108.2,108.2,108.3,108.4,108.5,108.6,108.6,108.7,108.7,108.8,108.9,108.9,109.0,109.0,109.1,109.2,109.2,109.3,109.4,109.4,109.5,109.6,109.6,109.7,109.8,109.9,110.0,110.0,110.1,110.2,110.2,110.4,110.4,110.5,110.6,110.7,110.8,110.8,110.9,111.0,111.0,111.1,111.2,111.2,111.3,111.4,111.4,111.5,111.6,111.7,111.8,111.9,112.0,112.0,112.1,112.2,112.2,112.3,112.4,112.5,112.6,112.6,112.7,112.8,112.8,112.9,113.0,113.0,113.2,113.3,113.4,113.4,113.5,113.6,113.6,113.7,113.8,113.8,113.9,114.0,114.1,114.2,114.3,114.4,114.4,114.5,114.6,114.6,114.7,114.8,114.9,115.0,115.1,115.2,115.2,115.3,115.4,115.5,115.5,115.6,115.6,115.6,115.7,115.8,115.9,116.0,116.0,116.1,116.2,116.2,116.3,116.4,116.4,116.4,116.5,116.6,116.6,116.7,116.8,116.8,116.9,117.0,117.0,117.1,117.2,117.2,117.3,117.4,117.5,117.5,117.6,117.6],"a43":[0.759,0.759,0.759,0.759,0.758,0.758,0.758,0.758,0.757,0.757,0.757,0.756,0.756,0.756,0.756,0.755,0.755,0.755,0.755,0.754,0.754,0.754,0.753,0.753,0.753,0.753,0.752,0.752,0.752,0.751,0.751,0.751,0.75,0.75,0.75,0.749,0.749,0.749,0.748,0.748,0.748,0.747,0.747,0.747,0.747,0.746,0.746,0.746,0.745,0.745,0.745,0.744,0.744,0.744,0.743,0.743,0.743,0.742,0.742,0.742,0.741,0.741,0.741,0.74,0.74,0.74,0.739,0.739,0.739,0.738,0.738,0.738,0.737,0.737,0.737,0.736,0.736,0.736,0.735,0.735,0.735,0.734,0.734,0.733,0.733,0.733,0.732,0.732,0.732,0.731,0.731,0.731,0.73,0.73,0.729,0.729,0.729,0.728,0.728,0.728,0.727,0.727,0.727,0.726,0.726,0.725,0.725,0.725,0.724,0.724,0.724,0.723,0.723,0.723,0.722,0.722,0.721,0.721,0.721,0.72,0.72,0.72,0.719,0.719,0.718,0.718,0.718,0.717,0.717,0.717,0.716,0.716,0.715,0.715,0.715,0.714,0.714,0.713,0.713,0.713,0.712,0.712,0.711,0.711,0.711,0.71,0.71,0.71,0.709,0.709,0.708,0.708,0.707,0.707,0.707,0.706,0.706,0.705,0.705,0.705,0.704,0.704,0.703,0.703,0.703,0.702,0.702,0.702,0.701,0.701,0.7,0.7,0.699,0.699,0.699,0.698,0.698,0.697,0.697,0.697,0.696,0.696,0.695,0.695,0.695,0.694,0.694,0.693,0.693,0.692,0.692,0.692,0.691,0.691,0.69,0.69,0.689,0.689,0.689,0.688,0.688,0.687,0.687,0.687,0.686,0.686,0.685,0.685,0.684,0.684,0.683,0.683,0.682,0.682,0.681,0.681,0.681,0.68,0.68,0.679,0.679,0.678,0.678,0.677,0.677,0.677,0.676,0.676,0.675,0.675,0.674,0.674,0.673,0.673,0.673,0.672,0.672,0.671,0.671,0.671,0.67,0.67,0.669,0.669,0.668,0.668,0.667,0.667,0.666,0.666,0.666,0.665,0.665,0.664,0.664,0.663,0.663,0.662,0.662,0.661,0.661,0.66,0.66,0.659,0.659,0.658,0.658,0.657,0.657,0.656,0.656,0.655,0.655,0.654,0.654,0.653,0.653,0.652,0.652,0.651,0.651,0.65,0.65,0.649,0.649,0.648,0.648,0.647,0.647,0.647,0.646,0.645,0.645,0.645,0.644,0.643,0.643,0.643,0.642,0.642,0.641,0.641,0.64,0.64,0.639,0.639,0.638,0.638,0.637,0.637,0.636,0.636,0.635,0.635,0.634,0.634,0.633,0.633,0.632,0.632,0.631,0.631,0.63,0.63,0.629,0.629,0.628,0.627,0.627,0.626,0.626,0.625,0.625,0.624,0.623,0.623,0.622,0.622,0.621,0.621,0.62,0.619,0.619,0.618,0.618,0.617,0.616,0.616,0.615,0.615,0.614,0.613,0.613,0.612,0.611,0.611,0.61,0.61,0.609,0.609,0.608,0.607,0.606,0.606,0.605,0.605,0.604,0.603,0.602,0.602,0.601,0.6,0.6,0.599,0.598,0.598,0.597,0.596,0.596,0.595,0.594,0.594,0.593,0.592,0.592,0.591,0.59,0.59,0.589,0.588,0.587,0.587,0.586,0.585,0.584,0.584,0.583,0.582,0.581,0.581,0.58,0.579,0.578,0.578,0.577,0.576,0.576,0.575,0.574,0.574,0.573,0.572,0.571,0.571,0.57,0.57,0.569,0.568,0.567,0.567,0.566,0.565,0.564,0.564,0.563,0.562,0.562,0.561,0.56,0.559,0.558,0.558,0.557,0.556,0.555,0.555,0.554,0.553,0.552,0.552,0.551,0.55,0.549,0.549,0.548,0.547,0.546,0.546,0.545,0.544,0.543,0.542,0.541,0.54,0.539,0.539,0.538,0.537,0.536,0.535,0.534,0.534,0.533,0.532,0.531,0.53,0.529,0.528,0.527,0.527,0.526,0.525,0.524,0.523,0.522,0.521,0.52,0.519,0.518,0.517,0.517,0.516,0.515,0.514,0.513,0.512,0.511,0.51,0.509,0.508,0.507,0.506,0.505,0.504,0.503,0.502,0.501,0.5,0.499,0.498,0.497,0.496,0.495,0.494,0.493,0.492,0.491,0.49,0.489,0.488,0.487,0.486,0.485,0.484,0.483,0.482,0.481,0.48,0.479,0.478,0.476,0.475,0.474,0.473,0.472,0.471,0.47,0.469,0.468,0.467,0.466,0.464,0.463,0.462,0.46,0.459,0.458,0.457,0.456,0.455,0.454,0.452,0.451,0.45,0.448,0.447,0.446,0.444,0.443,0.442,0.441,0.44,0.438,0.437,0.436,0.434,0.433,0.431,0.43,0.429,0.427,0.426,0.424,0.423,0.422,0.42,0.418,0.417,0.416,0.414,0.413,0.411,0.41,0.408,0.406,0.405,0.403,0.402,0.4,0.399,0.397,0.395,0.393,0.392,0.39,0.388,0.386,0.384,0.382,0.38,0.379,0.377,0.375,0.374,0.372,0.369,0.367,0.365,0.363,0.362,0.36,0.357,0.356,0.354,0.351,0.348,0.346,0.345,0.342,0.339,0.338,0.336,0.333,0.331,0.328,0.326,0.325,0.322,0.32,0.317,0.315,0.313,0.312,0.31,0.307,0.305,0.303,0.301,0.299,0.297,0.295,0.293,0.291,0.289,0.287,0.285,0.283,0.281,0.279,0.277,0.275,0.273,0.272,0.271,0.269,0.267,0.266,0.264,0.262,0.261,0.259,0.258,0.257,0.255,0.253,0.251,0.25,0.249,0.247,0.246,0.245,0.243,0.242,0.241,0.239,0.238,0.237,0.236,0.234,0.233,0.232,0.231,0.23,0.229,0.228,0.227,0.225,0.224,0.223,0.222,0.221,0.22,0.219,0.218,0.217,0.216,0.215,0.214,0.213,0.212,0.21,0.209,0.208,0.207,0.206,0.205,0.204,0.203,0.202,0.202,0.2,0.199,0.198,0.198,0.197,0.196,0.195,0.194,0.193,0.192,0.191,0.19,0.189,0.188,0.187,0.186,0.185,0.184,0.184,0.183,0.182,0.181,0.18,0.179,0.178,0.177,0.176,0.175,0.174,0.173,0.172,0.171,0.171,0.17,0.169,0.169,0.167,0.166,0.165,0.164,0.163,0.163,0.162,0.161,0.16,0.159,0.158,0.157,0.156,0.155,0.155,0.154,0.153,0.152,0.151,0.15,0.148,0.147,0.146,0.145,0.144,0.143,0.142,0.141,0.14,0.138,0.137,0.136,0.135,0.134,0.133,0.132,0.131,0.13,0.129,0.128,0.126,0.125,0.124,0.123,0.122,0.121,0.12,0.119,0.118,0.117,0.115,0.114,0.113,0.112,0.111,0.11,0.109,0.108,0.107,0.106,0.104,0.103,0.102,0.101,0.1,0.099,0.098,0.097],"a44":{"cc":[250,247,244,241,239,236,233,230,227,225,222,219,216,213,211,208,205,202,199,197,194,191,188,185,183,180,177,174,171,169,166,163,160,157,155,152,149,146,143,141,138,135,132,129,127,124,121,118,115,113,110,107,104,101,99,96,93,90,87,85,82,79,76,73,71,68,65,62,59,57,54,51,48,45,43,40,37,34,31,29,26,23,20,17,15,12,9,6,3,1],"dc":[0.178,0.176,0.174,0.172,0.17,0.168,0.166,0.164,0.162,0.16,0.158,0.156,0.154,0.152,0.15,0.148,0.146,0.144,0.142,0.14,0.138,0.136,0.134,0.132,0.13,0.128,0.126,0.124,0.122,0.12,0.118,0.116,0.114,0.112,0.11,0.108,0.106,0.104,0.102,0.1,0.098,0.096,0.094,0.092,0.09,0.088,0.086,0.084,0.082,0.08,0.078,0.076,0.074,0.072,0.07,0.068,0.066,0.064,0.062,0.06,0.058,0.056,0.054,0.052,0.05,0.048,0.046,0.044,0.042,0.04,0.038,0.036,0.034,0.032,0.03,0.028,0.026,0.024,0.022,0.02,0.018,0.016,0.014,0.012,0.01,0.008,0.006,0.004,0.002,0.0],"c":[-13.0,-13.0,-13.0,-13.0,-13.0,-13.0,-13.0,-13.0,-13.0,-13.0,-13.0,-12.1,-11.3,-10.5,-9.7,-8.9,-8.1,-7.3,-6.4,-5.6,-4.8,-4.0,-3.2,-2.4,-1.5,-0.7,0.1,0.9,1.7,2.5,3.3,4.2,5.0,5.8,6.6,7.4,8.2,9.0,9.9,10.7,11.5,12.3,13.1,13.9,14.8,15.6,16.1,17.2,17.8,18.9,19.4,20.6,21.1,22.2,22.8,23.9,24.4,25.6,26.1,27.2,27.8,28.9,29.4,30.0,31.1,31.7,32.8,33.3,34.4,35.0,36.1,36.7,37.8,38.3,39.4,40.0,41.1,41.7,42.8,43.3,43.9,45.0,45.6,46.7,47.2,48.3,48.9,50.0,50.6,51.7],"f":[9,9,9,9,9,9,9,9,9,9,9,10,12,13,15,16,17,19,20,22,23,25,26,28,29,31,32,34,35,37,38,39,41,42,44,45,47,48,50,51,53,54,56,57,59,60,61,63,64,66,67,69,70,72,73,75,76,78,79,81,82,84,85,86,88,89,91,92,94,95,97,98,100,101,103,104,106,107,109,110,111,113,114,116,117,119,120,122,123,125]},"a45":{"cc":[2,5,8,11,13,16,19,22,25,27],"dc":[0.002,0.004,0.006,0.008,0.01,0.012,0.014,0.016,0.018,0.02],"c":[52.2,52.8,53.9,54.4,55.6,56.1,57.2,57.8,58.9,59.4],"f":[126,127,129,130,132,133,135,136,138,139]}};
+const C = DATA.a41, R = DATA.a42, D = DATA.a43, A44 = DATA.a44, A45 = DATA.a45;
+const INHG = 33.8639; // mbar per in. Hg
+const PLABEL = { a44: ['71.1','74.5','77.9','81.3','84.6','88.0','91.4','94.8','98.2'], a45: ['101.6'] };   // C,D indexed by tenths of RON from 40.0; R indexed by counter from 450
+const MODES = {
+  ron:     { range: [40, 120.3],     rangeText: '40.0 – 120.3',  tab: 'a41' },
+  counter: { range: [357, 1290],     rangeText: '357 – 1290',    tab: 'a42' },
+  dial:    { range: [0.097, 0.759],  rangeText: '0.097 – 0.759', tab: 'a43' }
+};
+const TABS = {
+  a41: { cap: 'الجدول A4.1: قراءات العداد الرقمي لكل رقم أوكتان بحثي (الصف: الجزء الصحيح، العمود: الجزء العشري)', corner: 'RON', cols: 10, colLabel: j => '0.' + j, step: 1 },
+  a42: { cap: 'الجدول A4.2: أرقام الأوكتان البحثي لكل قراءة عداد رقمي (الصف: العشرات، العمود: الآحاد)', corner: 'Counter', cols: 10, colLabel: j => String(j), step: 10 },
+  a44: { cap: 'الجدول A4.4: تصحيح القراءات وحرارة هواء السحب عند ضغط جوي أقل من 29.92 in. Hg (الصف: الجزء الصحيح من الضغط، العمود: الجزء العشري)' },
+  a45: { cap: 'الجدول A4.5: تصحيح القراءات وحرارة هواء السحب عند ضغط جوي أعلى من 29.92 in. Hg (الصف: الجزء الصحيح من الضغط، العمود: الجزء العشري)' },
+  a43: { cap: 'الجدول A4.3: قراءات مؤشر القرص لكل رقم أوكتان بحثي (الصف: الجزء الصحيح، العمود: الجزء العشري)', corner: 'RON', cols: 10, colLabel: j => '0.' + j, step: 1 }
+};
+const $ = id => document.getElementById(id);
+const fR = x => x.toFixed(1), fD = x => x.toFixed(3), fC = x => String(Math.round(x));
+const FMT = { ron: fR, counter: fC, dial: fD };
+
+let mode = 'ron', activeTab = 'a41', last = null, P = null;
+
+function valAt(arr, p) {
+  const i = Math.floor(p);
+  if (i >= arr.length - 1) return arr[arr.length - 1];
+  return arr[i] + (arr[i + 1] - arr[i]) * (p - i);
+}
+function span(vals, f) {
+  const u = [...new Set(vals.map(v => f(v)))];
+  if (u.length === 1) return u[0];
+  const nums = vals.slice().sort((a, b) => a - b);
+  return f(nums[0]) + ' – ' + f(nums[nums.length - 1]);
+}
+function normalize(s) {
+  return s.replace(/[٠-٩]/g, d => d.charCodeAt(0) - 0x660)
+          .replace(/[۰-۹]/g, d => d.charCodeAt(0) - 0x6F0)
+          .replace(/[٫٬,،]/g, '.').trim();
+}
+
+function compute(m, raw, P, dir) {
+  const txt = normalize(raw);
+  if (txt === '') return { empty: true };
+  if (!/^\d*\.?\d+$|^\d+\.$/.test(txt)) return { err: 'اكتب رقمًا فقط، مثل 91.5' };
+  let v = parseFloat(txt);
+  const notes = [];
+  if (m === 'ron') {
+    const r = Math.round(v * 10) / 10;
+    if (Math.abs(v - r) > 1e-9) notes.push('قُرّبت القيمة إلى ' + fR(r) + ' لأن الجدول بخطوة 0.1.');
+    v = r;
+  } else if (m === 'counter') {
+    const r = Math.round(v);
+    if (Math.abs(v - r) > 1e-9) notes.push('قُرّبت القراءة إلى ' + r + ' لأن العداد يقرأ أعدادًا صحيحة.');
+    v = r;
+  } else {
+    const r = Math.round(v * 1000) / 1000;
+    if (Math.abs(v - r) > 1e-9) notes.push('قُرّبت القراءة إلى ' + fD(r) + ' لأن الجدول بثلاث منازل عشرية.');
+    v = r;
+  }
+  const useB = !!P && dir === 'b' && m !== 'ron';
+  let obs = null;
+  if (useB) {
+    obs = v;
+    v = m === 'counter' ? Math.round(obs - P.offC) : Math.round((obs - P.offD) * 1000) / 1000;
+  }
+  const [lo, hi] = MODES[m].range;
+  if (v < lo - 1e-9 || v > hi + 1e-9) {
+    return { err: 'القيمة خارج مدى الجدول' + (useB ? ' بعد تحويلها إلى الضغط القياسي (' + (m === 'counter' ? fC(v) : fD(v)) + ')' : '') + '. المدى المتاح: ' + MODES[m].rangeText };
+  }
+
+  // positions p are (possibly fractional) indices into C and D
+  let p = [], approx = false, src = {}, c42 = [];
+  if (m === 'ron') {
+    p = [Math.round(v * 10) - 400];
+    src = { ron: 'القيمة المدخلة', counter: 'من الجدول A4.1', dial: 'من الجدول A4.3' };
+  } else if (m === 'counter') {
+    if (v >= 450 && v <= 1249) {
+      p = [Math.round(R[v - 450] * 10) - 400];
+      c42 = [v - 450];
+      src = { ron: 'من الجدول A4.2', counter: 'القيمة المدخلة', dial: 'من الجدول A4.3 عند هذا الرقم' };
+    } else {
+      src = { ron: 'بحث عكسي في الجدول A4.1', counter: 'القيمة المدخلة', dial: 'من الجدول A4.3 عند هذا الرقم' };
+      for (let i = 0; i < C.length; i++) if (C[i] === v) p.push(i);
+      if (!p.length) {
+        for (let i = 0; i < C.length - 1; i++) if (C[i] < v && v < C[i + 1]) { p = [i + (v - C[i]) / (C[i + 1] - C[i])]; break; }
+        approx = true;
+        notes.push('القيمة ليست مدرجة حرفيًا في الجدول، فالنتيجة تقدير بالاستيفاء بين خليتين متجاورتين.');
+      } else if (p.length > 1) notes.push('تتكرر هذه القراءة في الجدول A4.1 عند عدة أرقام أوكتان، فتظهر النتيجة كمدى.');
+    }
+  } else {
+    src = { ron: 'بحث عكسي في الجدول A4.3', counter: 'من الجدول A4.1', dial: 'القيمة المدخلة' };
+    for (let i = 0; i < D.length; i++) if (Math.abs(D[i] - v) < 0.00049) p.push(i);
+    if (!p.length) {
+      for (let i = 0; i < D.length - 1; i++) if (D[i] > v && v > D[i + 1]) { p = [i + (D[i] - v) / (D[i] - D[i + 1])]; break; }
+      approx = true;
+      notes.push('القيمة ليست مدرجة حرفيًا في الجدول، فالنتيجة تقدير بالاستيفاء بين خليتين متجاورتين.');
+    } else if (p.length > 1) notes.push('تتكرر هذه القراءة في الجدول A4.3 عند عدة أرقام أوكتان، فتظهر النتيجة كمدى.');
+  }
+  if (!p.length) return { err: 'تعذّر إيجاد القيمة في الجداول.' };
+
+  const ronV = p.map(i => (i + 400) / 10);
+  const cV = p.map(i => valAt(C, i));
+  const dV = p.map(i => valAt(D, i));
+  const pre = approx ? '≈ ' : '';
+  const cNums = m === 'counter' ? [v] : cV, dNums = m === 'dial' ? [v] : dV;
+  const out = {
+    ron:     m === 'ron'     ? fR(v) : pre + span(ronV, fR),
+    counter: m === 'counter' ? fC(useB ? obs : v) : pre + span(cV, fC),
+    dial:    m === 'dial'    ? fD(useB ? obs : v) : pre + span(dV, fD)
+  };
+  const adj = {};
+  if (P) {
+    const B = x => '<bdi dir="ltr">' + x + '</bdi>';
+    const lab = 'عند ' + B(P.mbarText + ' mbar') + ': ';
+    adj.counter = useB && m === 'counter' ? 'المكافئ القياسي: ' + B(fC(v)) : lab + B((m === 'counter' ? '' : pre) + span(cNums.map(x => x + P.offC), fC));
+    adj.dial    = useB && m === 'dial'    ? 'المكافئ القياسي: ' + B(fD(v)) : lab + B((m === 'dial' ? '' : pre) + span(dNums.map(x => x + P.offD), fD));
+  }
+  // cell highlights
+  const h = { a41: new Set(), a42: new Set(), a43: new Set() };
+  p.forEach(i => {
+    const a = Math.floor(i), b = Number.isInteger(i) ? a : a + 1;
+    [a, b].forEach(k => { if (k >= 0 && k < C.length) { h.a41.add(k); h.a43.add(k); } });
+  });
+  if (m === 'counter' && c42.length) c42.forEach(k => h.a42.add(k));
+  else if (m === 'counter') { if (v >= 450 && v <= 1249) h.a42.add(v - 450); }
+  else if (!approx) cV.forEach(c => { const k = Math.round(c) - 450; if (k >= 0 && k < R.length) h.a42.add(k); });
+
+  const single = p.length === 1 && !approx;
+  const toObs = !!P && dir === 'b';
+  const std = { counter: m === 'counter' ? v : cV[0], dial: m === 'dial' ? v : dV[0] };
+  const inputs = single
+    ? { ron: fR(ronV[0]), counter: fC(std.counter + (toObs ? P.offC : 0)), dial: fD(std.dial + (toObs ? P.offD : 0)) }
+    : { [m]: String(useB ? obs : v) };
+  return { out, adj, src, notes, hits: h, single, std, ronV, cV, dV, approx, inputs, v };
+}
+
+/* ---------- tables ---------- */
+const cache = {};
+function pTableHTML(key) {
+  const S = key === 'a44' ? A44 : A45, groups = key === 'a44' ? 9 : 1, base = key === 'a44' ? 21 : 30;
+  const items = [['تصحيح العداد', S.cc, x => String(x)], ['تصحيح المؤشر', S.dc, x => x.toFixed(3)], ['IAT °C', S.c, x => x.toFixed(1).replace('-', '−')], ['IAT °F', S.f, x => String(x)]];
+  let h = '<table class="p" aria-label="' + TABS[key].cap + '"><thead><tr><th scope="col" class="g1">in. Hg (kPa)</th><th scope="col" class="g2">البند</th>';
+  for (let j = 0; j < 10; j++) h += '<th scope="col" id="' + key + '-c' + j + '">0.' + j + '</th>';
+  h += '</tr></thead><tbody>';
+  for (let g = 0; g < groups; g++) {
+    items.forEach((it, s) => {
+      h += '<tr' + (s === 3 ? ' class="end"' : '') + '>';
+      if (s === 0) h += '<th scope="rowgroup" rowspan="4" class="g1" id="' + key + '-g' + g + '">' + (base + g).toFixed(1) + ' (' + PLABEL[key][g] + ')</th>';
+      h += '<th scope="row" class="g2">' + it[0] + '</th>';
+      for (let j = 0; j < 10; j++) h += '<td id="' + key + '-' + (g * 10 + j) + '-' + s + '">' + it[2](it[1][g * 10 + j]) + '</td>';
+      h += '</tr>';
+    });
+  }
+  return h + '</tbody></table>';
+}
+function tableHTML(key) {
+  if (cache[key]) return cache[key];
+  if (key === 'a44' || key === 'a45') return (cache[key] = pTableHTML(key));
+  const T = TABS[key];
+  let h = '<table aria-label="' + T.cap + '"><thead><tr><th scope="col">' + T.corner + '</th>';
+  for (let j = 0; j < T.cols; j++) h += '<th scope="col" id="' + key + '-c' + j + '">' + T.colLabel(j) + '</th>';
+  h += '</tr></thead><tbody>';
+  const rows = key === 'a42' ? 80 : 81;
+  for (let r = 0; r < rows; r++) {
+    const label = key === 'a42' ? 450 + r * 10 : 40 + r;
+    h += '<tr><th scope="row" id="' + key + '-r' + r + '">' + label + '</th>';
+    for (let j = 0; j < T.cols; j++) {
+      const k = r * 10 + j;
+      let txt = '';
+      if (key === 'a41' && k < C.length) txt = C[k];
+      if (key === 'a42') txt = R[k].toFixed(1);
+      if (key === 'a43' && k < D.length) txt = D[k].toFixed(3);
+      h += '<td id="' + key + '-' + k + '">' + txt + '</td>';
+    }
+    h += '</tr>';
+  }
+  return (cache[key] = h + '</tbody></table>');
+}
+function showTable(key, scroll) {
+  activeTab = key;
+  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === key)));
+  $('tabcap').textContent = TABS[key].cap;
+  $('scroller').innerHTML = tableHTML(key);
+  const isP = key === 'a44' || key === 'a45';
+  const list = isP ? (P && P.table === key ? [P.k] : []) : (last && last.hits ? [...last.hits[key]].sort((a, b) => a - b) : []);
+  list.forEach(k => {
+    if (isP) { for (let s = 0; s < 4; s++) { const c = $(key + '-' + k + '-' + s); if (c) c.classList.add('hit'); } }
+    else { const td = $(key + '-' + k); if (td) td.classList.add('hit'); }
+  });
+  if (list.length) {
+    const k = list[0];
+    const rh = $(key + (isP ? '-g' : '-r') + Math.floor(k / 10)), ch = $(key + '-c' + (k % 10));
+    if (rh) rh.classList.add('axis'); if (ch) ch.classList.add('axis');
+    const td = $(key + '-' + k + (isP ? '-0' : '')), sc = $('scroller');
+    if (td && scroll !== false) { sc.scrollTop = Math.max(0, td.offsetTop - sc.clientHeight / 2 + td.offsetHeight / 2); sc.scrollLeft = Math.max(0, td.offsetLeft - sc.clientWidth / 2 + td.offsetWidth / 2); }
+  }
+}
+
+/* ---------- pressure ---------- */
+function readPressure() {
+  const info = $('pinfo'), pm = $('pmsgs');
+  info.innerHTML = ''; pm.innerHTML = '';
+  const txt = normalize($('mbar').value);
+  if (txt === '') return null;
+  const bad = m => { const li = document.createElement('li'); li.className = 'err'; li.textContent = m; pm.appendChild(li); return null; };
+  if (!/^\d*\.?\d+$|^\d+\.$/.test(txt)) return bad('اكتب الضغط رقمًا فقط، مثل 1013');
+  const mbar = parseFloat(txt), r = Math.round(mbar / INHG * 10) / 10;
+  if (r < 21.0 - 1e-9 || r > 30.9 + 1e-9) return bad('الضغط خارج مدى الجدولين A4.4 وA4.5، والمدى المتاح نحو 709 – 1048 mbar.');
+  const below = r <= 29.9 + 1e-9;
+  const S = below ? A44 : A45, k = Math.round((r - (below ? 21 : 30)) * 10);
+  const cc = S.cc[k], dc = S.dc[k];
+  const q = { mbar, mbarText: String(+mbar.toFixed(1)), r, table: below ? 'a44' : 'a45', k, cc, dc, c: S.c[k], f: S.f[k], offC: below ? cc : -cc, offD: below ? -dc : dc };
+  const sg = (x, f) => (x < 0 ? '−' : '+') + f(Math.abs(x));
+  const rows = [
+    ['الضغط المكافئ', r.toFixed(1) + ' in. Hg · ' + (mbar / 10).toFixed(1) + ' kPa'],
+    ['الجدول المستخدم', below ? 'A4.4' : 'A4.5'],
+    ['تعديل العداد', sg(q.offC, x => String(x))],
+    ['تعديل المؤشر', sg(q.offD, x => x.toFixed(3))],
+    ['IAT المرجعية', q.c.toFixed(1).replace('-', '−') + ' °C · ' + q.f + ' °F']
+  ];
+  info.innerHTML = rows.map(x => '<div><dt>' + x[0] + '</dt><dd>' + x[1] + '</dd></div>').join('');
+  if (Math.abs(mbar - 29.92 * INHG) < INHG / 2 && r === 29.9) {
+    const li = document.createElement('li'); li.textContent = 'الضغط قريب من القياسي 29.92 in. Hg، فالتعديل صغير.'; pm.appendChild(li);
+  }
+  return q;
+}
+
+/* ---------- render ---------- */
+function render() {
+  P = readPressure();
+  const dir = document.querySelector('input[name=dir]:checked').value;
+  const res = compute(mode, $('val').value, P, dir);
+  last = res;
+  const msgs = $('msgs'); msgs.innerHTML = '';
+  ['ron', 'counter', 'dial'].forEach(k => {
+    $('t-' + k).classList.toggle('given', k === mode && !res.err && !res.empty);
+    const b = $('t-' + k).querySelector('.badge'); if (b) b.remove();
+    $('v-' + k).textContent = '—'; $('s-' + k).textContent = '';
+    const a = $('a-' + k); if (a) a.textContent = '';
+  });
+  $('check').innerHTML = '';
+  if (res.err || res.empty) {
+    if (res.err) { const li = document.createElement('li'); li.className = 'err'; li.textContent = res.err; msgs.appendChild(li); }
+    showTable(MODES[mode].tab, false); return;
+  }
+  ['ron', 'counter', 'dial'].forEach(k => {
+    $('v-' + k).textContent = res.out[k];
+    $('s-' + k).textContent = res.src[k];
+    const a = $('a-' + k); if (a) a.innerHTML = (res.adj && res.adj[k]) || '';
+    if (k === mode) {
+      const b = document.createElement('span'); b.className = 'badge'; b.textContent = 'مُدخل';
+      $('t-' + k).insertBefore(b, $('t-' + k).firstChild);
+    }
+  });
+  res.notes.forEach(n => { const li = document.createElement('li'); li.textContent = n; msgs.appendChild(li); });
+  if (res.single) {
+    const c = res.std.counter, d = res.std.dial;
+    const eq = 1.012 - c / 1410;
+    $('check').innerHTML = 'التحقق بمعادلة حاشية الجدول: <code>dial = 1.012 − ' + c + ' ÷ 1410 = ' + eq.toFixed(3) + '</code> ، وقيمة الجدول <code>' + d.toFixed(3) + '</code>';
+  }
+  showTable(activeTab);
+}
+
+/* ---------- events ---------- */
+document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', () => {
+  const prev = last && last.inputs ? last.inputs : null;
+  mode = r.value;
+  $('range').innerHTML = 'المدى المتاح: <b>' + MODES[mode].rangeText + '</b>';
+  $('val').value = prev && prev[mode] ? prev[mode] : '';
+  activeTab = MODES[mode].tab;
+  render();
+  $('val').focus();
+}));
+$('val').addEventListener('input', render);
+$('mbar').addEventListener('input', () => { const q = readPressure(); if (q) activeTab = q.table; render(); });
+document.querySelectorAll('input[name=dir]').forEach(r => r.addEventListener('change', render));
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) showTable(b.dataset.t);
+});
+$('range').innerHTML = 'المدى المتاح: <b>' + MODES.ron.rangeText + '</b>';
+render();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
